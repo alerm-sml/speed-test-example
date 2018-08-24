@@ -1,0 +1,55 @@
+apply plugin: 'com.android.library'
+
+apply plugin: 'kotlin-android'
+
+apply plugin: 'kotlin-kapt'
+
+android {
+
+    def globalConfiguration = rootProject.extensions.getByName("ext")
+
+    compileSdkVersion globalConfiguration["compileSdkVersion"]
+
+    defaultConfig {
+        minSdkVersion globalConfiguration["minSdkVersion"]
+        targetSdkVersion globalConfiguration["targetSdkVersion"]
+        versionCode globalConfiguration["androidVersionCode"]
+        versionName globalConfiguration["androidVersionName"]
+
+        testInstrumentationRunner globalConfiguration["testInstrumentationRunner"]
+
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+dependencies {
+    def dataDependencies = rootProject.ext.dataDependencies
+    def dataTestDependencies = rootProject.ext.dataTestDependencies
+    def developmentDependencies = rootProject.ext.developmentDependencies
+
+    implementation project(':domain')
+
+    api dataDependencies.jSpeedTestLib
+
+    implementation dataDependencies.gson
+    api dataDependencies.retrofit
+    api dataDependencies.loginInterceptor
+    api dataDependencies.retrofitCoroutinesAdapter
+
+    api dataDependencies.room
+    kapt dataDependencies.roomCompiler
+    api dataDependencies.roomRx
+
+    implementation dataDependencies.rxAndroid
+
+    implementation developmentDependencies.timber
+
+    testImplementation dataTestDependencies.junit
+}

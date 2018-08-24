@@ -1,0 +1,127 @@
+allprojects {
+    repositories {
+        jcenter()
+        google()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+ext {
+    // Kotlin
+    final KOTLIN_VERSION = "1.2.50"
+    final KOTLIN_COROUTINES_VERSION = "0.23.1"
+    final KOTLIN_KTX_VERSION = "0.3"
+
+    // Android
+    final SUPPORT_LIBRARY_VERSION = "27.0.2"
+    final CONSTRAINT_LAYOUT_VERSION = "1.1.0-beta4"
+
+    // Rx
+    final RX_JAVA_VERSION = "2.1.8"
+    final RX_KOTLIN_VERSION = "2.2.0"
+    final RX_ANDROID_VERSION = "2.0.1"
+    final RX_BINDINGS_VERSION = "2.1.1"
+
+    // Core
+    final DAGGER_VERSION = "2.14.1"
+    final MOXY_VERSION = "1.5.3"
+    final CICERONE_VERSION = "3.0.0"
+    final RETROFIT_VERSION = "2.3.0"
+    final GSON_VERSION = "2.8.2"
+    final ROOM_VERSION = "1.0.0"
+    final OKHTTP_VERSION = "3.9.1"
+    final JAVAX_INJECT_VERSION = "1"
+    final MULTIDEX_VERSION = "1.0.3"
+
+    //
+    final J_SPEED_TEST_VERSION = "1.31.3"
+    final PERMISSION_DISPATCHER_VERSION = "3.2.0"
+
+    // Testing
+    final ESPRESSO_VERSION = "3.0.2-alpha1"
+    final RUNNER_VERSION = "1.0.1"
+    final JUNIT_VERSION = "4.12"
+    final MOCKITO_VERSION = "2.21.0"
+
+    // Development tools
+    final TIMBER_VERSION = "4.6.0"
+    final STETHO_VERSION = "1.5.0"
+
+    presentationDependencies = [
+
+            appCompat                     : "com.android.support:appcompat-v7:$SUPPORT_LIBRARY_VERSION",
+            cardView                      : "com.android.support:cardview-v7:$SUPPORT_LIBRARY_VERSION",
+            constraintLayout              : "com.android.support.constraint:constraint-layout:$CONSTRAINT_LAYOUT_VERSION",
+            design                        : "com.android.support:design:$SUPPORT_LIBRARY_VERSION",
+
+            dagger                        : "com.google.dagger:dagger:$DAGGER_VERSION",
+            daggerAndroid                 : "com.google.dagger:dagger-android:$DAGGER_VERSION",
+            daggerAndroidSupport          : "com.google.dagger:dagger-android-support:$DAGGER_VERSION",
+            daggerCompiler                : "com.google.dagger:dagger-compiler:$DAGGER_VERSION",
+            daggerAndroidCompiler         : "com.google.dagger:dagger-android-processor:$DAGGER_VERSION",
+
+            rxAndroid                     : "io.reactivex.rxjava2:rxandroid:$RX_ANDROID_VERSION",
+
+            cicerone                      : "ru.terrakok.cicerone:cicerone:$CICERONE_VERSION",
+
+            moxy                          : "com.arello-mobile:moxy:$MOXY_VERSION",
+            moxyCompiler                  : "com.arello-mobile:moxy-compiler:$MOXY_VERSION",
+            moxyAndroid                   : "com.arello-mobile:moxy-android:$MOXY_VERSION",
+            moxyAppCompat                 : "com.arello-mobile:moxy-app-compat:$MOXY_VERSION",
+
+            retrofitRxAdapter             : "com.squareup.retrofit2:adapter-rxjava2:$RETROFIT_VERSION",
+            retrofitGsonConverter         : "com.squareup.retrofit2:converter-gson:$RETROFIT_VERSION",
+
+            permissionsdispatcher         : "com.github.hotchemi:permissionsdispatcher:$PERMISSION_DISPATCHER_VERSION",
+            permissionsdispatcherProcessor: "com.github.hotchemi:permissionsdispatcher-processor:$PERMISSION_DISPATCHER_VERSION",
+
+            multidex                      : "com.android.support:multidex:$MULTIDEX_VERSION",
+    ]
+
+    presentationTestDependencies = [
+            junit   : "junit:junit:$JUNIT_VERSION",
+            espresso: "com.android.support.test.espresso:espresso-core:$ESPRESSO_VERSION",
+            runner  : "com.android.support.test:runner:$RUNNER_VERSION",
+    ]
+
+    domainDependencies = [
+            kotlin                 : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$KOTLIN_VERSION",
+            kotlinCoroutines       : "org.jetbrains.kotlinx:kotlinx-coroutines-core:$KOTLIN_COROUTINES_VERSION",
+            kotlinCoroutinesAndroid: "org.jetbrains.kotlinx:kotlinx-coroutines-android:$KOTLIN_COROUTINES_VERSION",
+
+            rxJava                 : "io.reactivex.rxjava2:rxjava:$RX_JAVA_VERSION",
+            rxKotlin               : "io.reactivex.rxjava2:rxkotlin:$RX_KOTLIN_VERSION",
+            javaxInject            : "javax.inject:javax.inject:$JAVAX_INJECT_VERSION",
+    ]
+
+    domainTestDependencies = [
+            junit        : "junit:junit:$JUNIT_VERSION",
+
+            mockito      : "org.mockito:mockito-core:$MOCKITO_VERSION",
+            mockitoInline: "org.mockito:mockito-inline:$MOCKITO_VERSION",
+    ]
+
+    dataDependencies = [
+            jSpeedTestLib            : "fr.bmartel:jspeedtest:$J_SPEED_TEST_VERSION",
+
+            gson                     : "com.google.code.gson:gson:$GSON_VERSION",
+            retrofit                 : "com.squareup.retrofit2:retrofit:$RETROFIT_VERSION",
+            loginInterceptor         : "com.squareup.okhttp3:logging-interceptor:$OKHTTP_VERSION",
+            retrofitCoroutinesAdapter: "com.jakewharton.retrofit:retrofit2-kotlin-coroutines-experimental-adapter:1.0.0",
+
+            room                     : "android.arch.persistence.room:runtime:$ROOM_VERSION",
+            roomCompiler             : "android.arch.persistence.room:compiler:$ROOM_VERSION",
+            roomRx                   : "android.arch.persistence.room:rxjava2:$ROOM_VERSION",
+
+            rxAndroid                : "io.reactivex.rxjava2:rxandroid:$RX_ANDROID_VERSION",
+    ]
+
+    dataTestDependencies = [
+            junit: "junit:junit:$JUNIT_VERSION",
+    ]
+
+    developmentDependencies = [
+            timber: "com.jakewharton.timber:timber:$TIMBER_VERSION",
+            stetho: "com.facebook.stetho:stetho:$STETHO_VERSION",
+    ]
+}

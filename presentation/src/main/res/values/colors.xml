@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--Primary-->
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#002984</color>
+    <color name="colorPrimaryLight">#757de8</color>
+    <color name="colorAccent">@color/colorSecondary</color>
+    <color name="textPrimary">#ffffff</color>
+
+    <!--Secondary-->
+    <color name="colorSecondary">#ff4081</color>
+    <color name="colorSecondaryLight">#ff79b0</color>
+    <color name="colorSecondaryDark">#c60055</color>
+    <color name="textSecondary">#000000</color>
+
+    <!--Control-->
+    <color name="colorControl">#B0BEC5</color>
+    <color name="textColorPrimary">@color/textPrimary</color>
+    <color name="textColorHighlight">@color/colorControl</color>
+
+    <!--Extra-->
+    <color name="white">#fff</color>
+    <color name="black">#000</color>
+
+    <!-- SpeedTest ProgressBar -->
+    <color name="stProgressBarGradientStart">@color/colorPrimaryLight</color>
+    <color name="stProgressBarGradientMid">@color/colorSecondaryLight</color>
+    <color name="stProgressBarGradientEnd">@color/colorSecondaryDark</color>
+    <color name="stProgressBarBackground">@color/colorPrimary</color>
+    <color name="stValueText">#99000000</color>
+    <color name="yellow">#f3c038</color>
+    <color name="colorSuccess">#64dd17</color>
+
+</resources>

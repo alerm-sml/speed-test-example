@@ -1,0 +1,23 @@
+apply plugin: 'java-library'
+
+apply plugin: 'kotlin'
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
+
+dependencies {
+    def domainDependencies = rootProject.ext.domainDependencies
+    def domainTestDependencies = rootProject.ext.domainTestDependencies
+
+    api domainDependencies.kotlin
+    api domainDependencies.kotlinCoroutines
+    api domainDependencies.kotlinCoroutinesAndroid
+
+    api domainDependencies.rxJava
+    api domainDependencies.rxKotlin
+    api domainDependencies.javaxInject
+
+    testImplementation domainTestDependencies.junit
+    api domainTestDependencies.mockito
+    api domainTestDependencies.mockitoInline
+}

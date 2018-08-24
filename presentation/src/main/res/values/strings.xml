@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">SpeedTestProject</string>
+
+
+    <string name="text_toolbar_choose_fragment">Choose</string>
+    <string name="text_toolbar_jspeedtest_fragment">B. Martel</string>
+    <string name="text_toolbar_okhttp_fragment">OkHttp</string>
+
+    <string name="text_choose_fragment_label">Choose speed test way</string>
+    <string name="button_text_jspeedtest">Bertrand Martel Speed Test</string>
+    <string name="button_text_okhttp">OkHttp Speed Test</string>
+
+    <!--Speedtest-->
+    <string name="ms">ms</string>
+    <string name="mbps">Mbps</string>
+    <string name="mb">Mb</string>
+
+    <string name="int_zero">0</string>
+    <string name="float_zero">0.00</string>
+</resources>
