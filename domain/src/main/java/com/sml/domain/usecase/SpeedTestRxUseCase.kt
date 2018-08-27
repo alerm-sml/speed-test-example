@@ -35,20 +35,16 @@ class SpeedTestRxUseCase @Inject constructor(
                     }
 
     private fun runMeasureDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-            getTimer()
-                    .withLatestFrom(
-                            measureDownloadSpeed(speedTestEntity),
-                            BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
-                    )
-                    .concatWith(Observable.just(returnLastEmit(speedTestEntity)))
+            getTimer().withLatestFrom(
+                    measureDownloadSpeed(speedTestEntity),
+                    BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
+            ).concatWith(Observable.just(returnLastEmit(speedTestEntity)))
 
     private fun runMeasureUploadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-            getTimer()
-                    .withLatestFrom(
-                            measureUploadSpeed(speedTestEntity),
-                            BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
-                    )
-                    .concatWith(Observable.just(returnLastEmit(speedTestEntity)))
+            getTimer().withLatestFrom(
+                    measureUploadSpeed(speedTestEntity),
+                    BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
+            ).concatWith(Observable.just(returnLastEmit(speedTestEntity)))
 
     private fun measureDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
             speedTestDownloadRepository.measureDownloadSpeed(speedTestEntity)

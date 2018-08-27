@@ -10,7 +10,6 @@ import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
-import java.io.InterruptedIOException
 import javax.inject.Inject
 
 class OkHttpSpeedTestDownloadRepositoryImpl @Inject constructor(
@@ -28,8 +27,7 @@ class OkHttpSpeedTestDownloadRepositoryImpl @Inject constructor(
                 try {
                     runDownloadSpeedTest(speedTestEntity = speedTestEntity, emitter = it)
                 } catch (e: Exception) {
-                    if (e !is InterruptedIOException)
-                        it.tryOnError(e)
+                    it.tryOnError(e)
                 }
                 it.setCancellable { okHttpApiSpeedTestDownload.stopTask() }
             }.map { speedTestEntityMapper.mapToDomain(speedTestEntity, it) }
