@@ -4,7 +4,10 @@ import com.sml.domain.development.Logger
 import com.sml.domain.entity.SpeedTestEntity
 import com.sml.domain.enums.FileTransferMarker
 import com.sml.domain.helper.DomainConst
-import com.sml.domain.repository.*
+import com.sml.domain.repository.SpeedTestDownloadRepository
+import com.sml.domain.repository.SpeedTestHostRepository
+import com.sml.domain.repository.SpeedTestInterpolatorRepository
+import com.sml.domain.repository.SpeedTestUploadRepository
 import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
 import java.util.concurrent.TimeUnit
@@ -13,7 +16,6 @@ import javax.inject.Inject
 class SpeedTestRxUseCase @Inject constructor(
         private val logger: Logger,
         private val speedTestHostRepository: SpeedTestHostRepository,
-        private val speedTestLatencyRepository: ServerLatencyRepository,
         private val speedTestUploadRepository: SpeedTestUploadRepository,
         private val speedTestDownloadRepository: SpeedTestDownloadRepository,
         private val speedTestInterpolatorRepository: SpeedTestInterpolatorRepository
@@ -25,8 +27,7 @@ class SpeedTestRxUseCase @Inject constructor(
                     .doOnNext { logger.d("${it.speedTestMode.name} speed ${it.currentSpeed}") }
 
     private fun startSpeedTest(): Observable<SpeedTestEntity> =
-            speedTestHostRepository.getAllSpeedTestHosts()
-                    .flatMap { speedTestLatencyRepository.getHostModelWithMinLatencySingle(it) }
+            speedTestHostRepository.getSpeedTestHost()
                     .flatMapObservable { entity ->
                         Observable.concat(
                                 runMeasureDownloadSpeed(entity),
@@ -35,20 +36,16 @@ class SpeedTestRxUseCase @Inject constructor(
                     }
 
     private fun runMeasureDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-            getTimer()
-                    .withLatestFrom(
-                            measureDownloadSpeed(speedTestEntity),
-                            BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
-                    )
-                    .concatWith(Observable.just(returnLastEmit(speedTestEntity)))
+            getTimer().withLatestFrom(
+                    measureDownloadSpeed(speedTestEntity),
+                    BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
+            ).concatWith(Observable.just(returnLastEmit(speedTestEntity)))
 
     private fun runMeasureUploadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-            getTimer()
-                    .withLatestFrom(
-                            measureUploadSpeed(speedTestEntity),
-                            BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
-                    )
-                    .concatWith(Observable.just(returnLastEmit(speedTestEntity)))
+            getTimer().withLatestFrom(
+                    measureUploadSpeed(speedTestEntity),
+                    BiFunction<Long, SpeedTestEntity, SpeedTestEntity> { _, entity -> entity }
+            ).concatWith(Observable.just(returnLastEmit(speedTestEntity)))
 
     private fun measureDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
             speedTestDownloadRepository.measureDownloadSpeed(speedTestEntity)

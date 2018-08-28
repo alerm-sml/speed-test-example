@@ -11,7 +11,6 @@ import com.sml.stp.basespecial.BaseTitledFragment
 import com.sml.stp.model.speedtest.SpeedTestViewModel
 import kotlinx.android.synthetic.main.fragment_okhttp_speedtest.*
 import kotlinx.android.synthetic.main.layout_download_speed_info.*
-import kotlinx.android.synthetic.main.layout_latency_info.*
 import kotlinx.android.synthetic.main.layout_upload_speed_info.*
 import permissions.dispatcher.NeedsPermission
 import permissions.dispatcher.RuntimePermissions
@@ -51,7 +50,6 @@ class OkHttpSpeedTestFragment : BaseTitledFragment(), OkHttpSpeedTestView {
 
     override fun showSpeed(model: SpeedTestViewModel) {
         speed_test_progressbar.setArrowAngleBySpeed(model.currentSpeed)
-        latency.text = model.latency.toString()
         downloadSpeed.text = model.downloadSpeed.toString()
         uploadSpeed.text = model.uploadSpeed.toString()
     }

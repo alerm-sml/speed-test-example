@@ -1,9 +1,8 @@
 package com.sml.domain.repository
 
-import com.sml.domain.entity.SpeedTestHostEntity
+import com.sml.domain.entity.SpeedTestEntity
 import io.reactivex.Single
 
 interface SpeedTestHostRepository {
-
-    fun getAllSpeedTestHosts(): Single<List<SpeedTestHostEntity>>
+    fun getSpeedTestHost(): Single<SpeedTestEntity>
 }

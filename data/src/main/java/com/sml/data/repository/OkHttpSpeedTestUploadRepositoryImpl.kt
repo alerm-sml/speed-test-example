@@ -13,7 +13,6 @@ import io.reactivex.ObservableEmitter
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 import java.io.File
-import java.net.SocketException
 import javax.inject.Inject
 
 class OkHttpSpeedTestUploadRepositoryImpl @Inject constructor(
@@ -32,8 +31,7 @@ class OkHttpSpeedTestUploadRepositoryImpl @Inject constructor(
                 try {
                     runUploadSpeedTest(speedTestEntity = speedTestEntity, emitter = it)
                 } catch (e: Exception) {
-                    if (e !is SocketException)
-                        it.tryOnError(e)
+                    it.tryOnError(e)
                 }
                 it.setCancellable { okHttpApiSpeedTestUpload.stopTask() }
             }.map { speedTestEntityMapper.mapToDomain(speedTestEntity, it) }

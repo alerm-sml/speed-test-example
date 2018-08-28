@@ -31,7 +31,7 @@ class OkHttp3Factory @Inject constructor(
                     .writeTimeout(OkHttpWayConst.SOCKET_TIMEOUT, TimeUnit.SECONDS)
                     .connectTimeout(OkHttpWayConst.SOCKET_TIMEOUT, TimeUnit.SECONDS)
                     .addNetworkInterceptor { chain ->
-                        val originalResponse = chain.proceed(chain.request()) //todo pass out interceptor?
+                        val originalResponse = chain.proceed(chain.request())
                         val originalBody = originalResponse.body()
                         originalBody?.let {
                             originalResponse.newBuilder()
