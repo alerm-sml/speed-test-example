@@ -1,24 +1,18 @@
 package com.sml.data.network
 
-import com.sml.data.model.network.SpeedtestHostNwModel
-import com.sml.data.model.response.SpeedTestServersResponse
+import com.sml.data.model.network.SpeedTestHostNwModel
 import io.reactivex.Single
 import javax.inject.Inject
 
-class MockStpApi @Inject constructor() {
+class MockStpApi @Inject constructor() : StpApi {
 
-    fun getSpeedTestServers(): Single<SpeedTestServersResponse> =
-            Single.just(getSpeedTestServersResponse())
+    override fun getSpeedTestServer(): Single<SpeedTestHostNwModel> =
+            Single.just(getNwHost())
 
-    private fun getSpeedTestServersResponse(): SpeedTestServersResponse =
-            SpeedTestServersResponse(getNwHosts(), "ok")
-
-    private fun getNwHosts(): List<SpeedtestHostNwModel> =
-            listOf(
-                    SpeedtestHostNwModel(
-                            hostName = "speedtest.tele2.net",
-                            downloadUrl = "http://speedtest.tele2.net/100MB.zip",
-                            uploadUrl = "http://speedtest.tele2.net/upload"
-                    )
+    private fun getNwHost(): SpeedTestHostNwModel =
+            SpeedTestHostNwModel(
+                    hostName = "speedtest.tele2.net",
+                    downloadUrl = "http://speedtest.tele2.net/100MB.zip",
+                    uploadUrl = "http://speedtest.tele2.net/upload"
             )
 }

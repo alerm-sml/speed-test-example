@@ -13,6 +13,9 @@ interface StpDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAllSpeedtestHosts(list: List<SpeedTestHostDbModel>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSpeedtestHost(model: SpeedTestHostDbModel)
+
     @Query("DELETE FROM speed_test_host")
     fun deleteAllSpeedtestHosts()
 

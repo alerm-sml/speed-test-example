@@ -9,7 +9,6 @@ import com.sml.stp.basespecial.BaseTitledFragment
 import com.sml.stp.model.speedtest.SpeedTestViewModel
 import kotlinx.android.synthetic.main.fragment_jspeedtest.*
 import kotlinx.android.synthetic.main.layout_download_speed_info.*
-import kotlinx.android.synthetic.main.layout_latency_info.*
 import kotlinx.android.synthetic.main.layout_upload_speed_info.*
 import timber.log.Timber
 import javax.inject.Inject
@@ -41,7 +40,6 @@ class JSpeedTestFragment : BaseTitledFragment(), JSpeedTestView {
 
     override fun showSpeed(model: SpeedTestViewModel) {
         speed_test_progressbar.setArrowAngleBySpeed(model.currentSpeed)
-        latency.text = model.latency.toString()
         downloadSpeed.text = model.downloadSpeed.toString()
         uploadSpeed.text = model.uploadSpeed.toString()
     }

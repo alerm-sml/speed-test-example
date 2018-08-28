@@ -19,8 +19,8 @@ class FileTools @Inject constructor() {
 
     @Throws(IOException::class)
     fun createFileWithSize(inputFile: File, size: Long, mode: String = "rw") {
-        val f = RandomAccessFile(inputFile, mode)
-        f.setLength(size)
-        f.close()
+        val randomAccessFile = RandomAccessFile(inputFile, mode)
+        randomAccessFile.setLength(size)
+        randomAccessFile.close()
     }
 }

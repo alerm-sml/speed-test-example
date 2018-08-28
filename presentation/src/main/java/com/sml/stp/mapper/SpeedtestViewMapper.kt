@@ -11,7 +11,6 @@ class SpeedtestViewMapper @Inject constructor(
 
     fun map(entity: SpeedTestEntity): SpeedTestViewModel =
             SpeedTestViewModel(
-                    latency = entity.latency,
                     currentSpeed = speedTestFormat.format(entity.currentSpeed),
                     downloadSpeed = speedTestFormat.format(entity.downloadSpeed),
                     uploadSpeed = speedTestFormat.format(entity.uploadSpeed),
