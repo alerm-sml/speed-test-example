@@ -46,43 +46,63 @@ OkHttpClient.Builder()
 В нашем переопределенном ResponseBody мы создаём анонимный класс, унаследованный от ForwardingSource. Этот класс подержит в себе метод read, возвращающий количество подсчитанных байт. В теле нашего метода read мы подсчитываем количество прочитанных байт и передаём эту информацию с помощью SpeedTestListener.
 
 ~~~ kotlin
-private val bufferedSource = Okio.buffer(initSource(responseBody.source()))
+class SpeedTestDownloadResponseBody(
+        private val responseBody: ResponseBody,
+        private val speedTestListener: SpeedTestListener,
+        private val startTimeMillis: Long,
+        private val timeBenchmark: TimeBenchmark,
+        private val reportInterval: Long
+) : ResponseBody() {
 
-override fun source(): BufferedSource {
-    return bufferedSource
-}
+    private val bufferedSource = Okio.buffer(initSource(responseBody.source()))
 
-@Throws(IOException::class)
-private fun initSource(source: Source): Source =
-    object : ForwardingSource(source) {
-        var totalBytesRead: Long = 0L
+    @Throws(IOException::class)
+    override fun contentLength(): Long =
+            responseBody.contentLength()
 
-        override fun read(sink: Buffer, byteCount: Long): Long {
-            var bytesRead = 0L
-            try {
-                bytesRead = super.read(sink, byteCount)
-                totalBytesRead += if (bytesRead != -1L) bytesRead else 0
+    override fun contentType(): MediaType? =
+            responseBody.contentType()
 
-                if (bytesRead == -1L) {
-                    speedTestListener.onNext(getZeroModel(bytesRead == -1L))
-                    speedTestListener.onComplete()
-                }
-
-                if (timeBenchmark.checkExpiredTime(reportInterval))
-                    speedTestListener.onNext(FileTransferModel(
-                            totalBytesRead = totalBytesRead,
-                            contentLength = responseBody.contentLength(),
-                            isDone = bytesRead == -1L,
-                            startTimeMillis = startTimeMillis,
-                            fileTransferMarker = FileTransferMarker.DOWNLOAD))
-
-            } catch (e: Exception) {
-                speedTestListener.onNext(getZeroModel())
-                throw e
-            }
-            return bytesRead
-        }
+    override fun source(): BufferedSource {
+        return bufferedSource
     }
+
+    @Throws(IOException::class)
+    private fun initSource(source: Source): Source =
+            object : ForwardingSource(source) {
+                var totalBytesRead: Long = 0L
+
+                override fun read(sink: Buffer, byteCount: Long): Long {
+                    var bytesRead = 0L
+                    try {
+                        bytesRead = super.read(sink, byteCount)
+                        totalBytesRead += if (bytesRead != -1L) bytesRead else 0
+
+                        if (bytesRead == -1L) {
+                            speedTestListener.onNext(getZeroModel(bytesRead == -1L))
+                            speedTestListener.onComplete()
+                        }
+
+                        if (timeBenchmark.checkExpiredTime(reportInterval))
+                            speedTestListener.onNext(FileTransferModel(
+                                    totalBytesRead = totalBytesRead,
+                                    contentLength = responseBody.contentLength(),
+                                    isDone = bytesRead == -1L,
+                                    startTimeMillis = startTimeMillis,
+                                    fileTransferMarker = FileTransferMarker.DOWNLOAD))
+
+                    } catch (e: Exception) {
+                        speedTestListener.onNext(getZeroModel())
+                        throw e
+                    }
+                    return bytesRead
+                }
+            }
+
+    private fun getZeroModel(isDone: Boolean = false): FileTransferModel =
+            FileTransferModel(0, 0, isDone, startTimeMillis, FileTransferMarker.NONE)
+
+}
 ~~~
 
 В конструктор переопределенного ResponseBody мы передаём анонимный класс, реализующий интерфейс SpeedTestListener, с помощью которого мы сможем передавать информацию о количестве подсчитанных байт и состоянии процесса выполнения.
@@ -134,33 +154,54 @@ Request.Builder()
 В конструктор переопределенного RequestBody мы, так же как и для измерения download, передаём анонимный класс, реализующий SpeedTestListener.
 
 ~~~ kotlin
-override fun writeTo(sink: BufferedSink) {
-    Okio.source(file).use { it ->
-        var totalBytesRead: Long = 0
-        try {
-            while (true) {
-                val read = it.read(sink.buffer(), OKIO_SEGMENT_SIZE)
-                if (read == -1L) {
-                    speedTestListener.onNext(getZeroModel(read == -1L))
-                    speedTestListener.onComplete()
-                    break
-                }
-                totalBytesRead += read
-                sink.flush()
-                if (timeBenchmark.checkExpiredTime(reportInterval))
-                    speedTestListener.onNext(FileTransferModel(
-                        totalBytesRead = totalBytesRead,
-                        contentLength = this.contentLength(),
-                        isDone = read == -1L,
-                        startTimeMillis = startTimeMillis,
-                        fileTransferMarker = FileTransferMarker.UPLOAD))
-            }
-        } catch (e: Exception) {
-            speedTestListener.onNext(getZeroModel())
-            throw e
-        }
+class SpeedTestUploadRequestBody(
+        private val file: File,
+        private val contentType: String,
+        private val speedTestListener: SpeedTestListener,
+        private val timeBenchmark: TimeBenchmark,
+        private val reportInterval: Long
+) : RequestBody() {
+
+    private val startTimeMillis: Long = timeBenchmark.build()
+
+    companion object {
+        const val OKIO_SEGMENT_SIZE = 2048L
     }
 
+    override fun contentType(): MediaType? =
+            MediaType.parse(contentType)
+
+    override fun writeTo(sink: BufferedSink) {
+        Okio.source(file).use { it ->
+            var totalBytesRead: Long = 0
+            try {
+                while (true) {
+                    val read = it.read(sink.buffer(), OKIO_SEGMENT_SIZE)
+                    if (read == -1L) {
+                        speedTestListener.onNext(getZeroModel(read == -1L))
+                        speedTestListener.onComplete()
+                        break
+                    }
+                    totalBytesRead += read
+                    sink.flush()
+                    if (timeBenchmark.checkExpiredTime(reportInterval))
+                        speedTestListener.onNext(FileTransferModel(
+                                totalBytesRead = totalBytesRead,
+                                contentLength = this.contentLength(),
+                                isDone = read == -1L,
+                                startTimeMillis = startTimeMillis,
+                                fileTransferMarker = FileTransferMarker.UPLOAD))
+                }
+            } catch (e: Exception) {
+                speedTestListener.onNext(getZeroModel())
+                throw e
+            }
+        }
+
+    }
+
+    private fun getZeroModel(isDone: Boolean = false): FileTransferModel =
+            FileTransferModel(0, 0, isDone, startTimeMillis, FileTransferMarker.NONE)
 }
 ~~~
 
@@ -171,48 +212,62 @@ override fun writeTo(sink: BufferedSink) {
 Реализуем классы OkHttpApiSpeedTest. В конструктор OkHttpApiSpeedTestDownload передадим фабрику, создающую нам экземпляры OkHttpClient-а.
 
 ~~~ kotlin
-fun executeDownloadSpeedTest(url: String, speedTestListener: SpeedTestListener) {
-    val request = okHttpFactory.buildDownloadRequest(url)
+class OkHttpApiSpeedTestDownload {
+...
 
-    client = okHttpFactory.buildDownloadOkHttpClient(
-            listener = speedTestListener,
-            reportInterval = OkHttpWayConst.REPORT_INTERVAL
-    )
-
-    val call = client.newCall(request)
-    call.execute().use { response ->
-        if (!response.isSuccessful) throw IOException("Unexpected code $response")
-        val string = response.body()?.string()
+    fun executeDownloadSpeedTest(url: String, speedTestListener: SpeedTestListener) {
+        val request = okHttpFactory.buildDownloadRequest(url)
+    
+        client = okHttpFactory.buildDownloadOkHttpClient(
+                listener = speedTestListener,
+                reportInterval = OkHttpWayConst.REPORT_INTERVAL
+        )
+    
+        val call = client.newCall(request)
+        call.execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+            val string = response.body()?.string()
+        }
     }
+    
+...
+
 }
 ~~~
 
 В классе OkHttpApiSpeedTestDownload напишем метод executeDownloadSpeedTest(), который будет отвечать за запуск нашего запроса, на получение файла с сервера.
 
+А в классе OkHttpApiSpeedTestUpload напишем аналогичный метод executeUploadSpeedTest(), который будет отвечать за запуск нашего запроса, на передачу нашего файла на сервер.
+
 ~~~ kotlin
-fun executeUploadSpeedTest(url: String, speedTestListener: SpeedTestListener, file: File) {
-    client = okHttpFactory.buildUploadOkHttpClient()
+class OkHttpApiSpeedTestUpload {
+...
 
-    val requestBody = okHttpFactory.buildUploadRequestUploadBody(
-            listener = speedTestListener,
-            reportInterval = OkHttpWayConst.REPORT_INTERVAL,
-            file = file
-    )
-
-    val request = okHttpFactory.buildUploadRequest(
-            url = url,
-            requestBody = requestBody
-    )
-
-    val call = client.newCall(request)
-    call.execute().use { response ->
-        if (!response.isSuccessful) throw IOException("Unexpected code $response")
-        val string = response.body()?.string()
+    fun executeUploadSpeedTest(url: String, speedTestListener: SpeedTestListener, file: File) {
+        client = okHttpFactory.buildUploadOkHttpClient()
+    
+        val requestBody = okHttpFactory.buildUploadRequestUploadBody(
+                listener = speedTestListener,
+                reportInterval = OkHttpWayConst.REPORT_INTERVAL,
+                file = file
+        )
+    
+        val request = okHttpFactory.buildUploadRequest(
+                url = url,
+                requestBody = requestBody
+        )
+    
+        val call = client.newCall(request)
+        call.execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+            val string = response.body()?.string()
+        }
     }
+    
+...
+
 }
 ~~~
-
-А в классе OkHttpApiSpeedTestUpload напишем аналогичный метод executeUploadSpeedTest(), который будет отвечать за запуск нашего запроса, на передачу нашего файла на сервер.
 
 А метод stopTask() - отменяет запрос OkHttp клиента, который выполняется.
 
@@ -231,37 +286,45 @@ fun stopTask() {
 В конструктор репозитория OkHttpSpeedTestDownloadRepositoryImpl, мы передаём OkHttpApiSpeedTestDownload и мапер.
 
 ~~~ kotlin
-override fun measureDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-    initMeasuredDownloadSpeed(speedTestEntity)
-        .subscribeOn(Schedulers.io())
+class OkHttpSpeedTestDownloadRepositoryImpl {
 
-private fun initMeasuredDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-    Observable.create<FileTransferModel> {
-        try {
-            runDownloadSpeedTest(speedTestEntity = speedTestEntity, emitter = it)
-        } catch (e: Exception) {
-            it.tryOnError(e)
-        }
-        it.setCancellable { okHttpApiSpeedTestDownload.stopTask() }
-    }.map { speedTestEntityMapper.mapToDomain(speedTestEntity, it) }
+...
 
-private fun runDownloadSpeedTest(speedTestEntity: SpeedTestEntity, emitter: ObservableEmitter<FileTransferModel>) =
-    okHttpApiSpeedTestDownload.executeDownloadSpeedTest(
-        url = speedTestEntity.downloadUrl,
-        speedTestListener = object : SpeedTestListener {
-            override fun onComplete() {
-                emitter.onComplete()
+    override fun measureDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
+        initMeasuredDownloadSpeed(speedTestEntity)
+            .subscribeOn(Schedulers.io())
+    
+    private fun initMeasuredDownloadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
+        Observable.create<FileTransferModel> {
+            try {
+                runDownloadSpeedTest(speedTestEntity = speedTestEntity, emitter = it)
+            } catch (e: Exception) {
+                it.tryOnError(e)
             }
-
-            override fun onNext(model: FileTransferModel) {
-                emitter.onNext(model)
+            it.setCancellable { okHttpApiSpeedTestDownload.stopTask() }
+        }.map { speedTestEntityMapper.mapToDomain(speedTestEntity, it) }
+    
+    private fun runDownloadSpeedTest(speedTestEntity: SpeedTestEntity, emitter: ObservableEmitter<FileTransferModel>) =
+        okHttpApiSpeedTestDownload.executeDownloadSpeedTest(
+            url = speedTestEntity.downloadUrl,
+            speedTestListener = object : SpeedTestListener {
+                override fun onComplete() {
+                    emitter.onComplete()
+                }
+    
+                override fun onNext(model: FileTransferModel) {
+                    emitter.onNext(model)
+                }
+    
+                override fun onError(throwable: Throwable) {
+                    emitter.onError(throwable)
+                }
             }
-
-            override fun onError(throwable: Throwable) {
-                emitter.onError(throwable)
-            }
-        }
-    )
+        )
+ 
+...   
+    
+}
 ~~~
 
 Рассмотрим основные методы OkHttpSpeedTestDownloadRepositoryImpl. В методе initMeasuredDownloadSpeed() мы создаём создаём RxJava Observable и параметризуем его FileTransferModel. В методе runDownloadSpeedTest() мы оборачиваем реализацию интерфейса SpeedTestListener-а.
@@ -269,41 +332,48 @@ private fun runDownloadSpeedTest(speedTestEntity: SpeedTestEntity, emitter: Obse
 В конструктор репозитория OkHttpSpeedTestUploadRepositoryImpl, по аналогии с OkHttpSpeedTestDownloadRepositoryImpl, мы передаём OkHttpApiSpeedTestUpload, мапер и FileTools - который отвечает за создание файла-болванки, который мы будем передавать на сервер.
 
 ~~~ kotlin
-override fun measureUploadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-    initMeasuredUploadSpeed(speedTestEntity)
-        .subscribeOn(Schedulers.io())
+class OkHttpSpeedTestUploadRepositoryImpl {
 
-private fun initMeasuredUploadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
-    Observable.create<FileTransferModel> {
-        try {
-            runUploadSpeedTest(speedTestEntity = speedTestEntity, emitter = it)
-        } catch (e: Exception) {
-            it.tryOnError(e)
-        }
-        it.setCancellable { okHttpApiSpeedTestUpload.stopTask() }
-    }.map { speedTestEntityMapper.mapToDomain(speedTestEntity, it) }
+...
 
-private fun runUploadSpeedTest(speedTestEntity: SpeedTestEntity, emitter: ObservableEmitter<FileTransferModel>) =
-    okHttpApiSpeedTestUpload.executeUploadSpeedTest(
-        url = speedTestEntity.uploadUrl,
-        speedTestListener = object : SpeedTestListener {
-            override fun onComplete() {
-                emitter.onComplete()
+    override fun measureUploadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
+        initMeasuredUploadSpeed(speedTestEntity)
+            .subscribeOn(Schedulers.io())
+    
+    private fun initMeasuredUploadSpeed(speedTestEntity: SpeedTestEntity): Observable<SpeedTestEntity> =
+        Observable.create<FileTransferModel> {
+            try {
+                runUploadSpeedTest(speedTestEntity = speedTestEntity, emitter = it)
+            } catch (e: Exception) {
+                it.tryOnError(e)
             }
-
-            override fun onNext(model: FileTransferModel) {
-                emitter.onNext(model)
-            }
-
-            override fun onError(throwable: Throwable) {
-                emitter.tryOnError(throwable)
-            }
-        },
-        file = createAndGetDummyFile()
-    )
-
-private fun createAndGetDummyFile(): File =
+            it.setCancellable { okHttpApiSpeedTestUpload.stopTask() }
+        }.map { speedTestEntityMapper.mapToDomain(speedTestEntity, it) }
+    
+    private fun runUploadSpeedTest(speedTestEntity: SpeedTestEntity, emitter: ObservableEmitter<FileTransferModel>) =
+        okHttpApiSpeedTestUpload.executeUploadSpeedTest(
+            url = speedTestEntity.uploadUrl,
+            speedTestListener = object : SpeedTestListener {
+                override fun onComplete() {
+                    emitter.onComplete()
+                }
+    
+                override fun onNext(model: FileTransferModel) {
+                    emitter.onNext(model)
+                }
+    
+                override fun onError(throwable: Throwable) {
+                    emitter.tryOnError(throwable)
+                }
+            },
+            file = createAndGetDummyFile()
+        )
+    
+    private fun createAndGetDummyFile(): File =
         fileTools.createFileWithSizeByFileName(OkHttpWayConst.SPEED_TEST_FILE, OkHttpWayConst.SPEED_TEST_FILE_SIZE)
+...
+
+}
 ~~~
 
 Методы OkHttpSpeedTestUploadRepositoryImpl схожи с методами класса OkHttpSpeedTestDownloadRepositoryImpl. В методе initMeasuredUploadSpeed() мы создаём создаём RxJava Observable и параметризуем его FileTransferModel. В методе runUploadSpeedTest() мы оборачиваем реализацию интерфейса SpeedTestListener-а. Метод createAndGetDummyFile() возвращает файл с заданным размером, который мы будем передавать на удалённый сервер.
@@ -319,54 +389,69 @@ private fun createAndGetDummyFile(): File =
 В конструкторы этих классов необходимо передать экземпляр класса SpeedTestSocket. Этот класс - реализация клиент-сокета. Инициализировать настройки экземпляра класса SpeedTestSocket установить добавить таймаут, после которого процесс измерения скорости передачи данных прекратится с Exception.
 
 ~~~ kotlin
-fun initDownloadSpeedtestSettings(speedtestListener: SpeedTestListener) {
-    speedTestSocket = speedTestSocketFactory.build()
-    speedTestSocket.socketTimeout = JSpeedTestWayConst.SOCKET_TIMEOUT
+class JSpeedTestApiDownload {
 
-    speedTestSocket.addSpeedTestListener(object : ISpeedTestListener {
+...
 
-        override fun onCompletion(report: SpeedTestReport) {
-            speedTestSocket.removeSpeedTestListener(this)
-            speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.NONE))
-            speedtestListener.onComplete()
-        }
+    fun initDownloadSpeedtestSettings(speedtestListener: SpeedTestListener) {
+        speedTestSocket = speedTestSocketFactory.build()
+        speedTestSocket.socketTimeout = JSpeedTestWayConst.SOCKET_TIMEOUT
+    
+        speedTestSocket.addSpeedTestListener(object : ISpeedTestListener {
+    
+            override fun onCompletion(report: SpeedTestReport) {
+                speedTestSocket.removeSpeedTestListener(this)
+                speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.NONE))
+                speedtestListener.onComplete()
+            }
+    
+            override fun onProgress(percent: Float, report: SpeedTestReport) {
+                speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.DOWNLOAD))
+            }
+    
+            override fun onError(speedTestError: SpeedTestError, errorMessage: String) {
+                speedtestListener.onError(NetworkErrorException("Speed test error"))
+            }
+    
+        })
+    }
 
-        override fun onProgress(percent: Float, report: SpeedTestReport) {
-            speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.DOWNLOAD))
-        }
+...
 
-        override fun onError(speedTestError: SpeedTestError, errorMessage: String) {
-            speedtestListener.onError(NetworkErrorException("Speed test error"))
-        }
-
-    })
 }
 ~~~
 
 Метод initDownloadSpeedtestSettings() в котором мы получаем экземпляр SpeedTestSocket из фабрики и устанавливаем таймаут и реализуем интерфейс ISpeedTestListener. В методах интерфейса ISpeedTestListener, мы с помощью SpeedTestListener передаём инфомацию о процессе измерения скорости передачи данных в репозитарий.
 
 ~~~ kotlin
-fun initUploadSpeedtestSettings(speedtestListener: SpeedTestListener) {
-    speedTestSocket = speedTestSocketFactory.build()
-    speedTestSocket.socketTimeout = JSpeedTestWayConst.SOCKET_TIMEOUT
+class JSpeedTestApiUpload {
+...
 
-    speedTestSocket.addSpeedTestListener(object : ISpeedTestListener {
+    fun initUploadSpeedtestSettings(speedtestListener: SpeedTestListener) {
+        speedTestSocket = speedTestSocketFactory.build()
+        speedTestSocket.socketTimeout = JSpeedTestWayConst.SOCKET_TIMEOUT
+    
+        speedTestSocket.addSpeedTestListener(object : ISpeedTestListener {
+    
+            override fun onCompletion(report: SpeedTestReport) {
+                speedTestSocket.removeSpeedTestListener(this)
+                speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.NONE))
+                speedtestListener.onComplete()
+            }
+    
+            override fun onProgress(percent: Float, report: SpeedTestReport) {
+                speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.UPLOAD))
+            }
+    
+            override fun onError(speedTestError: SpeedTestError, errorMessage: String) {
+                speedtestListener.onError(NetworkErrorException("Speed test error"))
+            }
+    
+        })
+    }
 
-        override fun onCompletion(report: SpeedTestReport) {
-            speedTestSocket.removeSpeedTestListener(this)
-            speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.NONE))
-            speedtestListener.onComplete()
-        }
+...
 
-        override fun onProgress(percent: Float, report: SpeedTestReport) {
-            speedtestListener.onNext(mapper.map(report, false, FileTransferMarker.UPLOAD))
-        }
-
-        override fun onError(speedTestError: SpeedTestError, errorMessage: String) {
-            speedtestListener.onError(NetworkErrorException("Speed test error"))
-        }
-
-    })
 }
 ~~~
 
@@ -418,26 +503,34 @@ fun stopTask() {
 В конструктор JSpeedTestDownloadRepositoryImpl мы передаём JSpeedTestApiDownload и маппер.
 
 ~~~ kotlin
-private fun runDownloadSpeedTest(url: String): Observable<FileTransferModel> =
-    Observable.create {
-        jSpeedTestApiDownload.initDownloadSpeedtestSettings(
-            object : SpeedTestListener {
-                override fun onComplete() {
-                    it.onComplete()
-                }
+class JSpeedTestDownloadRepositoryImpl {
 
-                override fun onNext(model: FileTransferModel) {
-                    it.onNext(model)
-                }
+...
 
-                override fun onError(throwable: Throwable) {
-                    it.onError(throwable)
+    private fun runDownloadSpeedTest(url: String): Observable<FileTransferModel> =
+        Observable.create {
+            jSpeedTestApiDownload.initDownloadSpeedtestSettings(
+                object : SpeedTestListener {
+                    override fun onComplete() {
+                        it.onComplete()
+                    }
+    
+                    override fun onNext(model: FileTransferModel) {
+                        it.onNext(model)
+                    }
+    
+                    override fun onError(throwable: Throwable) {
+                        it.onError(throwable)
+                    }
                 }
-            }
-        )
-        it.setCancellable { jSpeedTestApiDownload.stopTask() }
-        jSpeedTestApiDownload.runDownloadSpeedtest(url)
-    }
+            )
+            it.setCancellable { jSpeedTestApiDownload.stopTask() }
+            jSpeedTestApiDownload.runDownloadSpeedtest(url)
+        }
+
+...
+
+}
 ~~~
 
 Метод runDownloadSpeedTest() реализует интерфейс SpeedTestListener и создаётся Rx Observable параметризованный FileTransferModel. Observable оборачивает нашу реализацию SpeedTestListener.
@@ -445,26 +538,34 @@ private fun runDownloadSpeedTest(url: String): Observable<FileTransferModel> =
 В конструктор JSpeedTestUploadRepositoryImpl мы передаём JSpeedTestApiUpload и маппер.
 
 ~~~ kotlin
-private fun runUploadSpeedTest(url: String): Observable<FileTransferModel> =
-    Observable.create {
-        jSpeedTestApiUpload.initUploadSpeedtestSettings(
-            object : SpeedTestListener {
-                override fun onComplete() {
-                    it.onComplete()
-                }
+class JSpeedTestUploadRepositoryImpl {
 
-                override fun onNext(model: FileTransferModel) {
-                    it.onNext(model)
-                }
+...
 
-                override fun onError(throwable: Throwable) {
-                    it.onError(throwable)
+    private fun runUploadSpeedTest(url: String): Observable<FileTransferModel> =
+        Observable.create {
+            jSpeedTestApiUpload.initUploadSpeedtestSettings(
+                object : SpeedTestListener {
+                    override fun onComplete() {
+                        it.onComplete()
+                    }
+    
+                    override fun onNext(model: FileTransferModel) {
+                        it.onNext(model)
+                    }
+    
+                    override fun onError(throwable: Throwable) {
+                        it.onError(throwable)
+                    }
                 }
-            }
-        )
-        it.setCancellable { jSpeedTestApiUpload.stopTask() }
-        jSpeedTestApiUpload.runUploadSpeedtest(url)
-    }
+            )
+            it.setCancellable { jSpeedTestApiUpload.stopTask() }
+            jSpeedTestApiUpload.runUploadSpeedtest(url)
+        }
+ 
+...
+        
+}
 ~~~
 
 Метод runUploadSpeedTest() реализует интерфейс SpeedTestListener и оборачивает его в Rx.
